@@ -23,8 +23,8 @@ services:
     image: postgres:10-alpine
     restart: always
     environment:
-      - POSTGRES_DB=sigcd
-      - POSTGRES_USER=sigcd
+      - POSTGRES_DB=onlinemarket
+      - POSTGRES_USER=onlinemarket
       - POSTGRES_PASSWORD=superusersecret
 
     ports:
