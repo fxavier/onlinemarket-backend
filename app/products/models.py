@@ -18,6 +18,11 @@ TAG = (
     ('Mais vendido', 'Mais Vendido')
 )
 
+OWNER_TYPE = (
+    ('Particular', 'Particular'),
+    ('Empresa', 'Empresa')
+)
+
 class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(blank=True, null=True)
@@ -90,6 +95,7 @@ class ProductOwner(models.Model):
     email = models.EmailField(max_length=254)
     phones = ArrayField(models.CharField(max_length=50))
     address = models.CharField(max_length=255)
+    owner_type = models.CharField(max_length=20, choices=OWNER_TYPE)
 
 
     def __str__(self):
