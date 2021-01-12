@@ -4,7 +4,8 @@ from graphql import GraphQLError
 from graphene_file_upload.scalars import Upload
 from django.db.models import Q
 
-from products.models import Category, Subcategory, Product, ProductOwner, Private, Company
+from products.models import Category, Subcategory, Product, ProductOwner, Private, Company,\
+     ProductImage
 
 class CategoryType(DjangoObjectType):
     class Meta:
@@ -21,7 +22,9 @@ class ProductType(DjangoObjectType):
 class ProductOwnerType(DjangoObjectType):
     class Meta:
         model = ProductOwner
-
+class ProductImageType(DjangoObjectType):
+    class Meta:
+        model = ProductImage
 class PrivateType(DjangoObjectType):
     class Meta:
         model = Private
@@ -30,23 +33,26 @@ class CompanyType(DjangoObjectType):
         model = Company
 class Query(graphene.ObjectType):
     categories = graphene.List(CategoryType)
-    subcategories = graphene.List(SubcategoryType)
-    subcategories_by_category = graphene.List(SubcategoryType, category_id=graphene.Int())
+    subcategories = graphene.List(SubcategoryType, category_id=graphene.Int())
+    # subcategories_by_category = graphene.List(SubcategoryType, category_id=graphene.Int())
     productOwners = graphene.List(ProductOwnerType)
     privateOwners = graphene.List(PrivateType)
     companyOwners = graphene.List(CompanyType)
     products = graphene.List(ProductType, search=graphene.String(), subcategory_id=graphene.Int())
+    productImages = graphene.List(ProductImageType, product_id=graphene.Int(required=True))
     featured = graphene.List(ProductType)
    
 
     def resolve_categories(self, info):
         return Category.objects.all()
 
-    def resolve_subcategories(self, info):
+    def resolve_subcategories(self, info, category_id=None):
+        if category_id:
+            return Subcategory.objects.filter(category_id=category_id)
         return Subcategory.objects.all()
 
-    def resolve_subcategories_by_category(self, info, category_id):
-        return Subcategory.objects.filter(category_id=category_id)
+    # def resolve_subcategories_by_category(self, info, category_id):
+    #     return Subcategory.objects.filter(category_id=category_id)
 
     def resolve_privateOwners(self,info):
         return Private.objects.all()
@@ -67,7 +73,12 @@ class Query(graphene.ObjectType):
                     Q(description__icontains=query))
                 return self.filter(lookups)
         return Product.objects.filter(active=True)
-    
+
+    def resolve_productImages(self, info, product_id):
+        if not product_id:
+            raise GraphQLError('Fornecer o id do produto')
+        return ProductImage.objects.filter(product_id=product_id)
+        
     def resolve_featured(self, info):
         return Product.objects.filter(featured=True)
 
@@ -114,7 +125,7 @@ class CreateCompany(graphene.Mutation):
         phones     = graphene.String()
         address    = graphene.String()
         owner_type = graphene.String()
-        nuit       = graphene.String()
+        vat_number       = graphene.String()
 
     def mutate(self, info, **fields):
         company = Company(
@@ -123,7 +134,7 @@ class CreateCompany(graphene.Mutation):
             phones=fields.get('phones'),
             address=fields.get('address'),
             owner_type=fields.get('owner_type'),
-            nuit=fields.get('nuit')
+            vat_number=fields.get('vat_number')
             )
         company.save()
         return CreateCompany(company=company)
@@ -181,22 +192,50 @@ class UpdateSubcategory(graphene.Mutation):
         subcategory.category_id = fields.get('category_id')
         subcategory.save()
         return UpdateSubcategory(subcategory=subcategory)
-
-class UploadMutation(graphene.Mutation):
+class CreateProduct(graphene.Mutation):
+    product = graphene.Field(ProductType)
     class Arguments:
-        file = Upload(required=True)
-
+        name = graphene.String(required=True)
+        description = graphene.String()
+        subcategory_id = graphene.Int(required=True)
+        state = graphene.String()
+        tag = graphene.String()
+        price_old = graphene.Decimal()
+        discount = graphene.Decimal()
+        quantity = graphene.Int()
+        active = graphene.Boolean()
+        featured = graphene.Boolean()
+        product_owner_id = graphene.Int(required=True)
     success = graphene.Boolean()
 
-    def mutate(self, info, file, **kwargs):
-        # do something with your file
+    def mutate(self, info, **fields):
+        subcategory = Subcategory.objects.get(id=fields.get('subcategory_id'))
+        productOwner = ProductOwner.objects.get(id=fields.get('product_owner_id'))
+        product = Product.objects.create(
+            name=fields.get('name'),
+            description=fields.get('description'),
+            subcategory=subcategory,
+            state=fields.get('state'),
+            tag=fields.get('tag'),
+            price_old=fields.get('price_old'),
+            discount=fields.get('discount'),
+            quantity=fields.get('quantity'),
+            active=fields.get('active'),
+            featured=fields.get('featured'),
+            productOwner=productOwner
+        )
+        product.save()
+        files = info.context.FILES['imageItem']
+        productImage = ProductImage(product=product, image=files)
+        productImage.save()
+        return CreateProduct(product=product, productImage=productImage, success=True)
 
-        return UploadMutation(success=True)
-
+        
 class Mutation(graphene.ObjectType):
     create_category = CreateCategory.Field()
     create_subcategory = CreateSubcategory.Field()
     create_private = CreatePrivate.Field()
     create_company = CreateCompany.Field()
+    create_product = CreateProduct.Field()
 
 

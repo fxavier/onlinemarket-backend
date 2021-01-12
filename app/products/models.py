@@ -51,8 +51,6 @@ class Subcategory(models.Model):
     def __str__(self):
         return self.name
 
-class ProductImage(models.Model):
-    image = models.ImageField(upload_to=product_image_file_path, null=True, blank=True)
     
     # def __str__(self):
     #     return self.id
@@ -105,38 +103,49 @@ class Private(ProductOwner):
     identity_document = models.CharField(max_length=50, null=True, blank=True)
 
 class Company(ProductOwner):
-    nuit = models.CharField(max_length = 150)
-    logo = models.ImageField(upload_to=company_image_file_path ,null=True)
+    vat_number = models.CharField(max_length = 150)
+    logo = models.ImageField(upload_to=company_image_file_path , null=True, blank=True)
+
+    class Meta:
+        verbose_name_plural = 'Companies'
     
 class Product(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(blank=True, null=True)
     description = models.TextField()
     subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE)
-    cover_image = models.ImageField(upload_to=product_image_file_path)
-    images = models.ManyToManyField(ProductImage)
     state = models.CharField(max_length=10, choices=PRODUCT_STATE)
     tag = models.CharField(max_length=100, choices=TAG)
     price_old = models.DecimalField(max_digits=10, decimal_places=2)
-    price_new = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=10, decimal_places=2)
+    price_new = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     quantity = models.IntegerField(default=1)
     active = models.BooleanField(default=True)
     featured = models.BooleanField(default=False)
-    owner = models.ForeignKey(ProductOwner, on_delete=models.CASCADE, default=1)
+    product_owner = models.ForeignKey(ProductOwner, on_delete=models.CASCADE)
     
     def __str__(self):
         return self.name
     
    # objects = ProductManager()
     
-class Review(models.Model):
-    comment = models.TextField(blank=True, null=True)
+# class Review(models.Model):
+#     comment = models.TextField(blank=True, null=True)
+#     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    
+#     def __str__(self):
+#         return self.product.name       
+    
+class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    
+    image = models.ImageField(upload_to=product_image_file_path, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
-        return self.product.name       
+        return self.product.name
     
+
 def category_pre_save_receiver(sender, instance, *args, **kwargs):
     if not instance.slug:
         instance.slug = unique_slug_generator(instance)
@@ -154,3 +163,9 @@ def product_pre_save_receiver(sender, instance, *args, **kwargs):
         instance.slug = unique_slug_generator(instance)
         
 pre_save.connect(product_pre_save_receiver, sender=Product)
+
+def price_new_pre_save_receiver(sender, instance, *args, **kwargs):
+    if not instance.price_new:
+        instance.price_new = instance.price_old * (1 - instance.discount / 100)
+
+pre_save.connect(price_new_pre_save_receiver, sender=Product)

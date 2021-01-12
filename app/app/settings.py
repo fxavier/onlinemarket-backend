@@ -41,11 +41,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'graphene_django',
     'core',
-    'products'
+    'products',
 ]
 
 GRAPHENE = {
-    'SCHEMA': 'app.schema.schema',
+    'SCHEMA': 'app.schema.schema'
 }
 
 MIDDLEWARE = [
