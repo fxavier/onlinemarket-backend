@@ -1,13 +1,11 @@
 from django.contrib import admin
 
-from products import models
-from users.models import CustomUser
+from products.models import Product, Category, Subcategory, ProductOwner, ProductImage, \
+     CategoryImage, Private, Company
 
-admin.site.register(models.Product)
-admin.site.register(models.Category)
-admin.site.register(models.Subcategory)
-admin.site.register(models.ProductImage)
-admin.site.register(models.ProductOwner)
-admin.site.register(models.Private)
-admin.site.register(models.Company)
-admin.site.register(CustomUser)
+from users.models import User
+
+classes = [Product, Category, Subcategory, ProductOwner, ProductImage, Private, Company, User, CategoryImage]
+
+for model in classes:
+    admin.site.register(model)

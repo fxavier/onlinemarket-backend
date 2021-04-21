@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.contrib.postgres.fields import ArrayField
+from decimal import Decimal
 
 from core.utils import product_image_file_path, category_image_file_path, unique_slug_generator, company_image_file_path
 
@@ -27,7 +28,7 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(blank=True, null=True)
     description = models.TextField()
-    image = models.ImageField(blank=True, null=True, upload_to=category_image_file_path)
+   # image = models.ImageField(blank=True, null=True, upload_to=category_image_file_path)
     
     class Meta:
         verbose_name = "category"
@@ -44,6 +45,7 @@ class Subcategory(models.Model):
     slug = models.SlugField(max_length=100, blank=True, null=True)
     description = models.TextField(blank=True, null=True) 
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    
     class Meta:
         verbose_name = "Subcategory"
         verbose_name_plural = "Subcategories"
@@ -116,9 +118,9 @@ class Product(models.Model):
     subcategory = models.ForeignKey(Subcategory, on_delete=models.CASCADE)
     state = models.CharField(max_length=10, choices=PRODUCT_STATE)
     tag = models.CharField(max_length=100, choices=TAG)
-    price_old = models.DecimalField(max_digits=10, decimal_places=2)
-    discount = models.DecimalField(max_digits=10, decimal_places=2)
-    price_new = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    price_old = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    price_new = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=Decimal("0.00"))
     quantity = models.IntegerField(default=1)
     active = models.BooleanField(default=True)
     featured = models.BooleanField(default=False)
@@ -126,6 +128,29 @@ class Product(models.Model):
     
     def __str__(self):
         return self.name
+    
+class CategoryImage(models.Model):
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    url = models.CharField(max_length = 255)
+    
+    class Meta:
+        verbose_name = 'Category Image'
+        verbose_name_plural = 'Category Images'
+        
+    def __str__(self):
+        return self.category.name
+    
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    url = models.CharField(max_length = 255)
+    
+    class Meta:
+        verbose_name = 'Product Image'
+        verbose_name_plural = 'Product Images'
+    
+    def __str__(self):
+        return self.product.name
+        
     
    # objects = ProductManager()
     
@@ -135,16 +160,6 @@ class Product(models.Model):
     
 #     def __str__(self):
 #         return self.product.name       
-    
-class ProductImage(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    image = models.ImageField(upload_to=product_image_file_path, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.product.name
-    
 
 def category_pre_save_receiver(sender, instance, *args, **kwargs):
     if not instance.slug:

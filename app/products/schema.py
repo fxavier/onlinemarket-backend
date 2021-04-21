@@ -22,15 +22,19 @@ class ProductType(DjangoObjectType):
 class ProductOwnerType(DjangoObjectType):
     class Meta:
         model = ProductOwner
+        
 class ProductImageType(DjangoObjectType):
     class Meta:
         model = ProductImage
+        
 class PrivateType(DjangoObjectType):
     class Meta:
         model = Private
+        
 class CompanyType(DjangoObjectType):
     class Meta:
         model = Company
+        
 class Query(graphene.ObjectType):
     categories = graphene.List(CategoryType)
     subcategories = graphene.List(SubcategoryType, category_id=graphene.Int())
@@ -95,6 +99,7 @@ class CreateCategory(graphene.Mutation):
         )
         category.save()
         return CreateCategory(category=category)
+    
 class CreatePrivate(graphene.Mutation):
     private = graphene.Field(PrivateType)
     class Arguments:
@@ -192,6 +197,7 @@ class UpdateSubcategory(graphene.Mutation):
         subcategory.category_id = fields.get('category_id')
         subcategory.save()
         return UpdateSubcategory(subcategory=subcategory)
+    
 class CreateProduct(graphene.Mutation):
     product = graphene.Field(ProductType)
     class Arguments:
